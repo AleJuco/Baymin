@@ -6,4 +6,4 @@ Pillow>=10.0.0
 pyaudio==0.2.14
 yt-dlp
 SpeechRecognition
-google-generativeai
+google-genai

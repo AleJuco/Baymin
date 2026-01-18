@@ -38,81 +38,48 @@ class WakeCameraCapture:
         if self.check_allergies:
             try:
                 self.allergy_checker = AllergyChecker()
-                print("✓ Allergy checker initialized")
+                print("Allergy checker initialized")
             except Exception as e:
-                print(f"⚠️ Allergy checker disabled: {e}")
+                print(f"Allergy checker disabled: {e}")
                 self.check_allergies = False
         
     def capture_on_wake(self):
         """
-        Open camera window for 5 seconds and take a photo.
+        Take ONE photo immediately when wake word is detected.
         
         Returns:
-            str: Path to saved image, or None if failed
+            str or dict: Path to saved image, or result dict with allergy info
         """
-        print("\n📷 Wake word detected! Opening camera...")
+        print("\nWake word detected! Taking photo...")
         
         # Initialize camera
         if not self.camera.initialize():
             print("Failed to initialize camera")
             return None
         
-        start_time = time.time()
-        countdown = 5
         photo_path = None
         
         try:
-            while True:
-                # Capture frame
-                frame = self.camera.capture_for_processing()
-                
-                if frame is not None:
-                    # Convert to RGB for processing/AI (keep 'frame' as BGR for OpenCV functions)
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    
-                    # Calculate remaining time
-                    elapsed = time.time() - start_time
-                    remaining = max(0, countdown - int(elapsed))
-                    
-                    # Add countdown overlay
-                    text = f"Taking photo in {remaining}s... Press 'q' to cancel"
-                    cv2.putText(
-                        frame, 
-                        text, 
-                        (10, 30), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 
-                        0.7, 
-                        (0, 255, 0), 
-                        2
-                    )
-                    
-                    # Show frame
-                    cv2.imshow('Baymin Wake Camera', frame)
-                    
-                    # Check if time is up
-                    if elapsed >= countdown:
-                        # Take the photo
-                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                        filename = f"wake_{timestamp}.jpg"
-                        image, photo_path = self.camera.capture_and_save(self.save_path, filename)
-                        
-                        if photo_path:
-                            print(f"✓ Photo saved: {photo_path}")
-                        break
-                    
-                    # Check for cancel key
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
-                        print("Capture cancelled")
-                        break
-                
-                time.sleep(0.03)  # ~30 FPS
+            # Warm up camera (Windows needs a few frames)
+            for _ in range(10):
+                self.camera.capture_image()
+                time.sleep(0.1)
+            
+            # Take the photo
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"wake_{timestamp}.jpg"
+            image, photo_path = self.camera.capture_and_save(self.save_path, filename)
+            
+            if photo_path:
+                print(f"Photo saved: {photo_path}")
+            else:
+                print("Failed to capture photo")
                 
         except Exception as e:
             print(f"Error during capture: {e}")
         finally:
-            cv2.destroyAllWindows()
             self.camera.release()
-            print("📷 Camera closed\n")
+            print("Camera closed\n")
         
         # Check for allergies if photo was taken
         if photo_path and self.check_allergies and self.allergy_checker:

@@ -19,17 +19,18 @@ class Camera:
     def initialize(self):
         """Initialize the camera connection."""
         try:
-            self.camera = cv2.VideoCapture(self.camera_index)
+            # Use DirectShow on Windows for better compatibility
+            self.camera = cv2.VideoCapture(self.camera_index, cv2.CAP_DSHOW)
             self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
             self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
-            
-            # Fix white balance and color settings
-            self.camera.set(cv2.CAP_PROP_AUTO_WB, 1)  # Enable auto white balance
-            self.camera.set(cv2.CAP_PROP_AUTOFOCUS, 1)  # Enable autofocus
             
             if not self.camera.isOpened():
                 print("Error: Could not open camera")
                 return False
+            
+            # Warm up camera - Windows needs a few frames
+            for _ in range(5):
+                self.camera.read()
             
             print(f"Camera initialized at {self.resolution[0]}x{self.resolution[1]}")
             return True

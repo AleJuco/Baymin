@@ -1,6 +1,7 @@
 """
-Wake word detection using openWakeWord
-Continuously listens for a wake phrase and opens camera window
+Wake word detection using speech recognition
+Continuously listens for "hey baymax" and opens camera window
+Works on Windows/Mac/Linux
 """
 
 import sys
@@ -8,133 +9,104 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from Peripherals.camera import Camera
-from openwakeword.model import Model
 from WakeCamera import WakeCameraCapture
-import pyaudio
-import numpy as np
-import threading
+import speech_recognition as sr
 import time
 import cv2
 
-class OpenWakeWord:
-    def __init__(self, wake_word="hey_baymin"):
+class WakeWordDetector:
+    def __init__(self, wake_word="hey", device_index=None):
         """
-        Initialize wake word detection with openWakeWord.
+        Initialize wake word detection with speech recognition.
         
         Args:
-            wake_word (str): Wake word model to use
-                Pre-trained: 'alexa', 'hey_jarvis', 'hey_mycroft', 'hey_rhasspy'
+            wake_word (str): Wake phrase to listen for
+            device_index (int): Microphone device index (None for default)
         """
-        self.wake_word = wake_word
-        self.model = None
+        self.wake_word = wake_word.lower()
+        self.device_index = device_index
         self.camera_capture = WakeCameraCapture()
         self.is_running = False
-        self.camera_thread = None
+        self.recognizer = sr.Recognizer()
         
-        # Audio settings
-        self.mic_sample_rate = 44100  # HyperX SoloCast native rate
-        self.model_sample_rate = 16000  # openWakeWord requires 16kHz
-        self.chunk_size = 1280  # 80ms at 16kHz
-        self.mic_chunk_size = int(1280 * 44100 / 16000)  # Corresponding 44.1kHz chunk
-        self.device_index = 3  # HyperX SoloCast
-        
-        self.audio = pyaudio.PyAudio()
-        
-        print(f"Initializing openWakeWord detection...")
+        print(f"Initializing wake word detection...")
         print(f"Wake word: '{wake_word}'")
         
     def initialize(self):
-        """Load openWakeWord model and initialize peripherals."""
+        """Initialize speech recognition."""
         try:
-            print(f"\nLoading openWakeWord model...")
+            print("\nListing available microphones:")
+            for i, name in enumerate(sr.Microphone.list_microphone_names()):
+                print(f"  {i}: {name}")
             
-            # Load with default models
-            self.model = Model()
-            
-            print(f"✓ Model loaded")
-            print(f"  Available: {list(self.model.models.keys())}")
+            # Test microphone access
+            with sr.Microphone(device_index=self.device_index) as source:
+                print(f"\nUsing microphone: {self.device_index or 'default'}")
+                print("Adjusting for ambient noise...")
+                self.recognizer.adjust_for_ambient_noise(source, duration=1)
+                print("Ready!")
             
             return True
         except Exception as e:
-            print(f"Error initializing openWakeWord: {e}")
+            print(f"Error initializing: {e}")
             return False
     
     def listen_continuously(self):
         """Continuously listen for the wake word."""
-        if not self.model:
-            print("Please call initialize() first")
-            return
-        
         print("\n" + "=" * 60)
-        print("🎤 Listening for wake word...")
+        print("Listening for wake word: '%s'" % self.wake_word)
         print("Press Ctrl+C to stop")
         print("=" * 60 + "\n")
         
         self.is_running = True
         
-        # Open audio stream at 44.1kHz
-        stream = self.audio.open(
-            rate=self.mic_sample_rate,
-            channels=1,
-            format=pyaudio.paInt16,
-            input=True,
-            input_device_index=self.device_index,
-            frames_per_buffer=self.mic_chunk_size
-        )
-        
-        print("🎧 Ready! Listening...")
-        
         try:
-            while self.is_running:
-                # Read audio chunk at 44.1kHz
-                audio_data = np.frombuffer(
-                    stream.read(self.mic_chunk_size, exception_on_overflow=False),
-                    dtype=np.int16
-                )
-                
-                # Resample to 16kHz for the model
-                import scipy.signal
-                audio_16k = scipy.signal.resample(audio_data, self.chunk_size)
-                
-                # Get predictions
-                prediction = self.model.predict(audio_16k.astype(np.int16))
-                
-                # Check if wake word detected (threshold > 0.5)
-                for wake_word, score in prediction.items():
-                    if score > 0.5:
-                        print(f"\n{'='*60}")
-                        print(f"✅ WAKE WORD DETECTED: {wake_word} (confidence: {score:.2f})")
-                        print("="*60)
+            with sr.Microphone(device_index=self.device_index) as source:
+                while self.is_running:
+                    try:
+                        # Listen for speech
+                        self.recognizer.adjust_for_ambient_noise(source, duration=0.3)
+                        audio = self.recognizer.listen(source, timeout=2, phrase_time_limit=3)
                         
-                        # Reset model
-                        self.model.reset()
+                        # Recognize speech
+                        text = self.recognizer.recognize_google(audio).lower()
+                        print(f"Heard: '{text}'")
                         
-                        # Trigger camera capture and allergy check
-                        result = self.camera_capture.capture_on_wake()
+                        # Check for wake word
+                        if self.wake_word in text:
+                            print("\n" + "=" * 60)
+                            print("WAKE WORD DETECTED!")
+                            print("=" * 60)
+                            
+                            # Trigger camera capture and allergy check
+                            result = self.camera_capture.capture_on_wake()
+                            
+                            if result:
+                                if isinstance(result, dict):
+                                    print(f"\nImage: {result['image_path']}")
+                                    print(f"Verdict: {result['verdict']}")
+                                    if result['allergies_found']:
+                                        print(f"Allergens: {', '.join(result['allergies_found'])}")
+                                else:
+                                    print(f"Photo saved: {result}")
+                            
+                            print("\nAnalysis complete. Exiting...")
+                            self.is_running = False
+                            break
+                            
+                    except sr.WaitTimeoutError:
+                        # No speech detected, continue
+                        continue
+                    except sr.UnknownValueError:
+                        # Speech not understood, continue
+                        continue
+                    except sr.RequestError as e:
+                        print(f"Speech recognition error: {e}")
+                        continue
                         
-                        if result:
-                            if isinstance(result, dict):
-                                # Allergy check was performed
-                                print(f"\n{'='*60}")
-                                print(f"📸 Image: {result['image_path']}")
-                                print(f"🔍 Verdict: {result['verdict']}")
-                                if result['allergies_found']:
-                                    print(f"⚠️ Allergens: {', '.join(result['allergies_found'])}")
-                                print("="*60)
-                            else:
-                                # Just the path (allergy check disabled)
-                                print(f"📸 Photo saved: {result}")
-                        
-                        # Stop after one detection
-                        print("\n✅ Analysis complete. Exiting...")
-                        self.is_running = False
-                        break
-                    
         except KeyboardInterrupt:
-            print("\n\n🛑 Stopping wake word detection...")
+            print("\n\nStopping wake word detection...")
         finally:
-            stream.stop_stream()
-            stream.close()
             self.is_running = False
             self.cleanup()
     
@@ -142,36 +114,35 @@ class OpenWakeWord:
         """Clean up resources."""
         self.is_running = False
         cv2.destroyAllWindows()
-        if self.audio:
-            self.audio.terminate()
-        print("✓ Cleanup complete")
+        print("Cleanup complete")
 
 
 if __name__ == "__main__":
     import logging
     
-    # Set up logging
+    # Set up logging (ASCII only for Windows compatibility)
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler('/home/baymini/Baymin/wake.log'),
+            logging.FileHandler('wake.log', encoding='utf-8'),
             logging.StreamHandler()
         ]
     )
     
     logging.info("=" * 60)
-    logging.info("🤖 BAYMIN WAKE WORD SERVICE STARTING")
+    logging.info("BAYMIN WAKE WORD SERVICE STARTING")
     logging.info("=" * 60)
     
-    # Create wake word detector with alexa wake word
-    detector = OpenWakeWord(wake_word="alexa")
+    # Create wake word detector
+    # Set device_index=None for default mic, or specify a number from the list
+    detector = WakeWordDetector(wake_word="hey", device_index=None)
     
     # Initialize
     if detector.initialize():
-        logging.info("✅ Initialization successful, starting to listen...")
+        logging.info("Initialization successful, starting to listen...")
         # Start listening
         detector.listen_continuously()
     else:
-        logging.error("❌ Failed to initialize. Exiting...")
+        logging.error("Failed to initialize. Exiting...")
         sys.exit(1)
