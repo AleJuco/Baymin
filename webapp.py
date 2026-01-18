@@ -336,9 +336,9 @@ def index():
         content = f"""
         <div class="card" style="text-align: center; padding: 4rem 2rem;">
             <div style="font-size: 5rem; color: var(--primary); margin-bottom: 1rem;" class="baymax-eyes">(●—●)</div>
-            <h1>Good Morning, {user['name'].split()[0]}.</h1>
+            <h1>Good Day, {user['name'].split()[0]}.</h1>
             <p style="font-size: 1.2rem; max-width: 600px; margin: 0 auto 30px auto;">
-                I am Baymin, your personal miniature healthcare companion.
+                Scan anything to get started.
             </p>
             
             <a href="/dashboard">
@@ -363,7 +363,7 @@ def index():
         <div style="text-align: center; margin-top: 40px;">
             <div class="baymax-eyes" style="font-size: 4rem; margin-bottom: 20px;">(●—●)</div>
             <h1 style="font-size: 3.5rem; line-height: 1.1; margin-bottom: 20px; background: linear-gradient(135deg, #1E293B 0%, #475569 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                Your Personal <br>Health Guardian.
+                Your Personal <br>Healthcare Companion.
             </h1>
             <p style="font-size: 1.25rem; max-width: 600px; margin: 0 auto 40px auto;">
                 Baymini uses AI vision to scan food, detect allergens, and keep you safe.
