@@ -6,12 +6,6 @@
 
 ---
 
-## 📸 Demo
-
-*(Replace this line with a screenshot of your Dashboard or a GIF of Baymini scanning a product)*
-
----
-
 ## ✨ Features
 
 * **👁️ AI Vision Analysis:** Uses **Gemini 2.5 Flash** to visually analyze product packaging and ingredient labels in milliseconds.
