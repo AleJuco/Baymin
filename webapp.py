@@ -5,7 +5,7 @@ import os
 # --- CONFIGURATION (EDIT THIS) ---
 PI_IP = "192.168.1.XX"       # <--- YOUR PI'S IP ADDRESS
 PI_USER = "pi"               # <--- YOUR PI USERNAME
-PI_PATH = "/home/pi/baymax_project/user_data.json" # Where it lands on the Pi
+PI_PATH = "/home/pi/baymini_project/user_data.json" # Where it lands on the Pi CHANGE THESE
 
 app = Flask(__name__)
 
@@ -14,7 +14,7 @@ HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Baymax Health Portal</title>
+    <title>Baymini Health Portal</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; padding-top: 50px; }
         .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 400px; }
@@ -28,7 +28,7 @@ HTML_TEMPLATE = """
 </head>
 <body>
     <div class="container">
-        <h1>(●—●) <br>Baymax Setup</h1>
+        <h1>(●—●) <br>Baymini Setup</h1>
         <form method="POST">
             <label>Patient Name</label>
             <input type="text" name="name" placeholder="e.g. Hiro Hamada" required>
@@ -39,7 +39,7 @@ HTML_TEMPLATE = """
             <label>Medical Conditions</label>
             <textarea name="conditions" placeholder="e.g. Asthma, Diabetes"></textarea>
             
-            <button type="submit">Update Baymax</button>
+            <button type="submit">Update Baymini</button>
         </form>
         
         {% if status %}
@@ -76,7 +76,7 @@ def home():
         exit_code = os.system(cmd)
         
         if exit_code == 0:
-            status_msg = "✅ Sent to Baymax successfully!"
+            status_msg = "✅ Sent to Baymini successfully!"
         else:
             status_msg = "❌ Error sending to Pi. Check Terminal for password prompt."
 
