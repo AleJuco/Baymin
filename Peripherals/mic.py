@@ -5,7 +5,7 @@ from datetime import datetime
 import speech_recognition as sr
 
 class Microphone:
-    def __init__(self, sample_rate=44100, channels=1, chunk_size=1024, device_index=2):
+    def __init__(self, sample_rate=44100, channels=1, chunk_size=1024, device_index=3):
         """
         Initialize the Microphone for audio recording and speech recognition.
         
@@ -13,7 +13,7 @@ class Microphone:
             sample_rate (int): Audio sample rate in Hz (44100 for HyperX SoloCast)
             channels (int): Number of audio channels (1 for mono, 2 for stereo)
             chunk_size (int): Number of frames per buffer
-            device_index (int): PyAudio device index (2 for HyperX SoloCast)
+            device_index (int): PyAudio device index (3 for HyperX SoloCast)
         """
         self.sample_rate = sample_rate
         self.channels = channels

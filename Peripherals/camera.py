@@ -23,6 +23,10 @@ class Camera:
             self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
             self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
             
+            # Fix white balance and color settings
+            self.camera.set(cv2.CAP_PROP_AUTO_WB, 1)  # Enable auto white balance
+            self.camera.set(cv2.CAP_PROP_AUTOFOCUS, 1)  # Enable autofocus
+            
             if not self.camera.isOpened():
                 print("Error: Could not open camera")
                 return False
