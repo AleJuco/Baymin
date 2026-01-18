@@ -148,10 +148,30 @@ class OpenWakeWord:
 
 
 if __name__ == "__main__":
-    # Create wake word detector
-    detector = OpenWakeWord(wake_word="hey_jarvis")
+    import logging
+    
+    # Set up logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler('/home/baymini/Baymin/wake.log'),
+            logging.StreamHandler()
+        ]
+    )
+    
+    logging.info("=" * 60)
+    logging.info("🤖 BAYMIN WAKE WORD SERVICE STARTING")
+    logging.info("=" * 60)
+    
+    # Create wake word detector with alexa wake word
+    detector = OpenWakeWord(wake_word="alexa")
     
     # Initialize
     if detector.initialize():
+        logging.info("✅ Initialization successful, starting to listen...")
         # Start listening
         detector.listen_continuously()
+    else:
+        logging.error("❌ Failed to initialize. Exiting...")
+        sys.exit(1)

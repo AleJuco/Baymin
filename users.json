@@ -83,5 +83,21 @@
         "medications": [
             "wasd"
         ]
+    },
+    {
+        "name": "ale",
+        "email": "imperial.alejandroj1@gmail.com",
+        "password": "123asdqwe",
+        "allergies": [
+            "apples",
+            "bananas",
+            "potatoes"
+        ],
+        "conditions": [
+            "left eye strain"
+        ],
+        "medications": [
+            "alcohol"
+        ]
     }
 ]

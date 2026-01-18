@@ -30,6 +30,15 @@ class TextToSpeech:
                 print("✓ Using GLaDOS neural TTS engine")
                 return 'glados'
         
+        # Check for gTTS (Google TTS)
+        if self.engine == 'auto' or self.engine == 'gtts':
+            try:
+                from gtts import gTTS
+                print("✓ Using Google Text-to-Speech (gTTS)")
+                return 'gtts'
+            except ImportError:
+                pass
+        
         # Check for espeak
         try:
             result = subprocess.run(['which', 'espeak'], 
@@ -68,9 +77,18 @@ class TextToSpeech:
     def _check_glados(self):
         """Check if GLaDOS TTS API is available."""
         try:
+            print("🔍 Checking for GLaDOS server at", self.glados_api)
             response = requests.get(self.glados_api.replace('/synthesize', '/'), timeout=2)
+            print(f"   Response: {response.status_code}")
             return response.status_code == 200 or response.status_code == 404  # 404 is ok, means server is up
-        except:
+        except requests.exceptions.ConnectionError as e:
+            print(f"   ❌ GLaDOS server not running: Connection refused")
+            return False
+        except requests.exceptions.Timeout:
+            print(f"   ❌ GLaDOS server timeout")
+            return False
+        except Exception as e:
+            print(f"   ❌ GLaDOS check failed: {e}")
             return False
     
     def speak(self, text, rate=150, volume=100):
@@ -91,6 +109,8 @@ class TextToSpeech:
         try:
             if self.available_engine == 'glados':
                 self._speak_glados(text)
+            elif self.available_engine == 'gtts':
+                self._speak_gtts(text)
             elif self.available_engine == 'espeak':
                 self._speak_espeak(text, rate, volume)
             elif self.available_engine == 'festival':
@@ -134,6 +154,41 @@ class TextToSpeech:
             except:
                 print(f"TTS: {text}")
     
+    def _speak_gtts(self, text):
+        """Speak using Google Text-to-Speech (gTTS) - natural voice, needs internet."""
+        try:
+            from gtts import gTTS
+            
+            # Generate audio
+            tts = gTTS(text=text, lang='en', slow=False)
+            
+            # Save to temp file
+            with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
+                audio_file = f.name
+            
+            tts.save(audio_file)
+            
+            # Play audio with mpg123 or ffplay
+            try:
+                subprocess.run(['mpg123', '-q', audio_file])
+            except FileNotFoundError:
+                # Try ffplay if mpg123 not available
+                try:
+                    subprocess.run(['ffplay', '-nodisp', '-autoexit', audio_file], 
+                                 stderr=subprocess.DEVNULL)
+                except FileNotFoundError:
+                    # Try aplay with conversion (requires ffmpeg)
+                    subprocess.run(['ffmpeg', '-i', audio_file, '-f', 'wav', '-', '|', 'aplay'], 
+                                 shell=True, stderr=subprocess.DEVNULL)
+            
+            # Clean up
+            os.unlink(audio_file)
+            
+        except Exception as e:
+            print(f"gTTS error: {e}")
+            # Fallback to espeak
+            self._speak_espeak(text, 175, 100)
+    
     def _speak_espeak(self, text, rate=150, volume=100):
         """Speak using espeak with the warmest, friendliest voice possible."""
         # Try different voice variants for most natural sound
@@ -165,14 +220,60 @@ class TextToSpeech:
         engine.say(text)
         engine.runAndWait()
     
-    def announce_verdict(self, safe, allergies_found=None):
+    def _simplify_reasoning(self, reasoning):
         """
-        Announce allergy check verdict.
+        Convert technical reasoning into natural speech.
+        
+        Args:
+            reasoning (str): Technical reasoning from Gemini API
+            
+        Returns:
+            str: Simplified, conversational explanation
+        """
+        if not reasoning:
+            return ""
+        
+        # Remove overly technical language and make it conversational
+        simplified = reasoning
+        
+        # Shorten common phrases
+        replacements = {
+            "The visible food item in the image is": "This looks like",
+            "displayed on a smartphone screen": "on your screen",
+            "in their natural state": "",
+            "do not contain": "don't have",
+            "No ingredient labels, processing information, or cross-contamination warnings are visible": "I don't see any warning labels",
+            "that would indicate the presence of": "showing",
+            "or their derivatives": "",
+            "Therefore, based on the visual evidence": "So",
+            "regarding the specified allergens": "for your allergies",
+            "itself is safe": "is safe",
+        }
+        
+        for old, new in replacements.items():
+            simplified = simplified.replace(old, new)
+        
+        # Limit to first 2 sentences for brevity
+        sentences = simplified.split('. ')
+        if len(sentences) > 2:
+            simplified = '. '.join(sentences[:2]) + '.'
+        
+        return simplified.strip()
+    
+    def announce_verdict(self, safe, allergies_found=None, reasoning=None):
+        """
+        Announce allergy check verdict with optional reasoning.
         
         Args:
             safe (bool): Whether food is safe to eat
             allergies_found (list): List of allergens detected
+            reasoning (str): Detailed reasoning from allergen analysis
         """
+        import random
+        
+        # Simplify reasoning if provided
+        simplified_reasoning = self._simplify_reasoning(reasoning) if reasoning else ""
+        
         if safe is False:
             # Unsafe - caring warning
             if allergies_found:
@@ -182,8 +283,12 @@ class TextToSpeech:
                     f"I detected {allergens} in this food. It's not safe for you to eat.",
                     f"Warning: this has {allergens}. Please don't eat this.",
                 ]
-                import random
                 message = random.choice(messages)
+                
+                # Add simplified reasoning if available
+                if simplified_reasoning:
+                    message += " " + simplified_reasoning
+                
                 self.speak(message, rate=150, volume=100)
             else:
                 messages = [
@@ -191,8 +296,13 @@ class TextToSpeech:
                     "I recommend you avoid this food.",
                     "This isn't safe for you to eat.",
                 ]
-                import random
-                self.speak(random.choice(messages), rate=150, volume=100)
+                message = random.choice(messages)
+                
+                # Add simplified reasoning if available
+                if simplified_reasoning:
+                    message += " " + simplified_reasoning
+                
+                self.speak(message, rate=150, volume=100)
         elif safe is True:
             # Safe - warm approval
             messages = [
@@ -201,8 +311,13 @@ class TextToSpeech:
                 "This looks safe! Enjoy your meal.",
                 "All good! No allergens found.",
             ]
-            import random
-            self.speak(random.choice(messages), rate=160, volume=85)
+            message = random.choice(messages)
+            
+            # Add simplified reasoning if available
+            if simplified_reasoning:
+                message += " " + simplified_reasoning
+            
+            self.speak(message, rate=160, volume=85)
         else:
             # Unable to determine - gentle uncertainty
             messages = [
@@ -210,8 +325,13 @@ class TextToSpeech:
                 "I couldn't identify all the ingredients. Better to be cautious.",
                 "I'm unable to verify this is safe. Please double check before eating.",
             ]
-            import random
-            self.speak(random.choice(messages), rate=155, volume=80)
+            message = random.choice(messages)
+            
+            # Add simplified reasoning if available
+            if simplified_reasoning:
+                message += " " + simplified_reasoning
+            
+            self.speak(message, rate=155, volume=80)
 
 
 def main():

@@ -1,0 +1,14 @@
+{
+  "name": "Test 1",
+  "email": "payton0620y@gmail.com",
+  "allergies": [
+    "peanuts",
+    "fish"
+  ],
+  "conditions": [
+    "diabates"
+  ],
+  "medications": [
+    "something"
+  ]
+}

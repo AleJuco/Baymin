@@ -12,16 +12,16 @@ import google.generativeai as genai
 from PIL import Image
 
 class AllergyChecker:
-    def __init__(self, api_key=None, user_data_path="../user_data.json"):
+    def __init__(self, api_key=None, user_data_path="../current_user.json"):
         """
         Initialize allergy checker with Gemini API.
         
         Args:
             api_key (str): Google Gemini API key (or set GEMINI_API_KEY env var)
-            user_data_path (str): Path to user_data.json file
+            user_data_path (str): Path to current_user.json file
         """
         # Get API key from parameter or environment
-        self.api_key = api_key or os.getenv('GEMINI_API_KEY') or 'AIzaSyCI2N5Uj_zST6Y9idVjXs4SWTy_jeKmwcU'
+        self.api_key = api_key or os.getenv('GEMINI_API_KEY')
         if not self.api_key:
             raise ValueError("No API key provided. Set GEMINI_API_KEY environment variable or pass api_key parameter")
         
@@ -29,28 +29,28 @@ class AllergyChecker:
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel('gemini-2.5-flash')
         
-        # Load user data
+        # Load current user data
         self.user_data_path = os.path.join(
             os.path.dirname(__file__), 
             user_data_path
         )
-        self.users = self.load_user_data()
+        self.current_user = self.load_user_data()
         
     def load_user_data(self):
-        """Load user allergy data from JSON file."""
+        """Load current user allergy data from JSON file."""
         try:
             with open(self.user_data_path, 'r') as f:
                 return json.load(f)
+        except FileNotFoundError:
+            print(f"⚠️ No current user logged in. Create current_user.json or log in via webapp.")
+            return {"name": "Guest", "allergies": [], "conditions": [], "medications": []}
         except Exception as e:
             print(f"Error loading user data: {e}")
-            return []
+            return {"name": "Guest", "allergies": [], "conditions": [], "medications": []}
     
     def get_all_allergies(self):
-        """Get combined list of all user allergies."""
-        all_allergies = set()
-        for user in self.users:
-            all_allergies.update(user.get('allergies', []))
-        return list(all_allergies)
+        """Get allergies for the current logged-in user."""
+        return self.current_user.get('allergies', [])
     
     def check_food_safety(self, image_path):
         """

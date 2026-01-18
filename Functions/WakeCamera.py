@@ -118,10 +118,11 @@ class WakeCameraCapture:
         if photo_path and self.check_allergies and self.allergy_checker:
             result = self.allergy_checker.check_food_safety(photo_path)
             
-            # Announce verdict with TTS
+            # Announce verdict with TTS including reasoning
             self.tts.announce_verdict(
                 safe=result['safe'],
-                allergies_found=result['allergies_found']
+                allergies_found=result['allergies_found'],
+                reasoning=result.get('analysis', '')
             )
             
             # Return result with allergy info
@@ -129,7 +130,8 @@ class WakeCameraCapture:
                 'image_path': photo_path,
                 'safe': result['safe'],
                 'allergies_found': result['allergies_found'],
-                'verdict': "DO NOT EAT" if result['safe'] is False else "SAFE TO EAT"
+                'verdict': "DO NOT EAT" if result['safe'] is False else "SAFE TO EAT",
+                'reasoning': result.get('analysis', '')
             }
         
         return photo_path
