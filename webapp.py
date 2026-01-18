@@ -3,9 +3,9 @@ import json
 import os
 
 # --- CONFIGURATION (EDIT THIS) ---
-PI_IP = "192.168.1.XX"       # <--- YOUR PI'S IP ADDRESS
-PI_USER = "pi"               # <--- YOUR PI USERNAME
-PI_PATH = "/home/pi/baymini_project/user_data.json" # Where it lands on the Pi CHANGE THESE
+PI_IP = "206.87.128.246"       # <--- YOUR PI'S IP ADDRESS
+PI_USER = "baymini"               # <--- YOUR PI USERNAME
+PI_PATH = "/home/baymini" # Where it lands on the Pi 
 
 app = Flask(__name__)
 
@@ -24,6 +24,8 @@ HTML_TEMPLATE = """
         button { width: 100%; background-color: #ff4444; color: white; padding: 15px; border: none; border-radius: 5px; margin-top: 20px; font-size: 16px; cursor: pointer; }
         button:hover { background-color: #cc0000; }
         .status { margin-top: 20px; text-align: center; color: green; font-weight: bold; }
+        .info-box { background-color: #f0f0f0; color: #666; padding: 10px; border-radius: 5px; font-size: 13px; margin-top: 15px; display: flex; align-items: center; }
+        .info-box::before { content: 'ℹ'; font-size: 16px; margin-right: 8px; color: #999; }
     </style>
 </head>
 <body>
@@ -38,6 +40,8 @@ HTML_TEMPLATE = """
             
             <label>Medical Conditions</label>
             <textarea name="conditions" placeholder="e.g. Asthma, Diabetes"></textarea>
+            
+            <div class="info-box">Separate multiple items with commas</div>
             
             <button type="submit">Update Baymini</button>
         </form>
@@ -55,10 +59,13 @@ def home():
     status_msg = ""
     if request.method == 'POST':
         # 1. Get data from the webpage
+        allergies_raw = request.form.get('allergies', '')
+        conditions_raw = request.form.get('conditions', '')
+        
         data = {
             "name": request.form.get('name'),
-            "allergies": request.form.get('allergies'),
-            "conditions": request.form.get('conditions')
+            "allergies": [a.strip() for a in allergies_raw.split(',') if a.strip()],
+            "conditions": [c.strip() for c in conditions_raw.split(',') if c.strip()]
         }
         
         # 2. Save locally
