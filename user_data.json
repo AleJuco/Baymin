@@ -1,1 +1,20 @@
-{"name": "asddsa", "allergies": ["asd asdasd asd asd", "asdsad", "asddsa"], "conditions": ["asd asdas as", "asdsa"]}
+[
+    {
+        "name": "Test #1",
+        "allergies": [
+            "Peanut"
+        ],
+        "conditions": [
+            "Diabetes"
+        ]
+    },
+    {
+        "name": "Test #2",
+        "allergies": [
+            "people"
+        ],
+        "conditions": [
+            "sunlight"
+        ]
+    }
+]

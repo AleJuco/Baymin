@@ -57,31 +57,47 @@ HTML_TEMPLATE = """
 @app.route('/', methods=['GET', 'POST'])
 def home():
     status_msg = ""
+    local_file = "user_data.json"
+
     if request.method == 'POST':
         # 1. Get data from the webpage
         allergies_raw = request.form.get('allergies', '')
         conditions_raw = request.form.get('conditions', '')
-        
-        data = {
+
+        new_user = {
             "name": request.form.get('name'),
             "allergies": [a.strip() for a in allergies_raw.split(',') if a.strip()],
             "conditions": [c.strip() for c in conditions_raw.split(',') if c.strip()]
         }
-        
-        # 2. Save locally
-        local_file = "user_data.json"
+
+        # 2. Read existing data
+        if os.path.exists(local_file):
+            with open(local_file, 'r') as f:
+                try:
+                    users = json.load(f)
+                    if not isinstance(users, list):
+                        users = []  # Reset if the file is not a list
+                except json.JSONDecodeError:
+                    users = []  # Reset if the file contains invalid JSON
+        else:
+            users = []  # Initialize if file doesn't exist
+
+        # 3. Append new user data
+        users.append(new_user)
+
+        # 4. Save updated data
         with open(local_file, 'w') as f:
-            json.dump(data, f)
-            
-        # 3. Send to Pi using SCP
+            json.dump(users, f, indent=4)
+
+        # 5. Send to Pi using SCP
         print(f"Sending data to {PI_IP}...")
-        
+
         # The SCP Command
         cmd = f"scp {local_file} {PI_USER}@{PI_IP}:{PI_PATH}"
-        
+
         # Execute it
         exit_code = os.system(cmd)
-        
+
         if exit_code == 0:
             status_msg = "✅ Sent to Baymini successfully!"
         else:
