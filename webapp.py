@@ -305,7 +305,17 @@ def load_users():
 def save_users(users):
     with open('users.json', 'w') as f:
         json.dump(users, f, indent=4)
-
+def save_current_user(user):
+    """Save the currently logged-in user to current_user.json for AllergyCheck."""
+    current_user_data = {
+        "name": user.get('name', 'User'),
+        "email": user.get('email', ''),
+        "allergies": user.get('allergies', []),
+        "conditions": user.get('conditions', []),
+        "medications": user.get('medications', [])
+    }
+    with open('current_user.json', 'w') as f:
+        json.dump(current_user_data, f, indent=2)
 def sync_to_pi():
     # SIMULATION MODE FOR WINDOWS (To avoid password hanging)
     # If you want real sync, uncomment the os.system line
@@ -464,6 +474,8 @@ def login():
         user = next((u for u in users if u['email'] == request.form.get('email') and u['password'] == request.form.get('password')), None)
         if user:
             session['user'] = user
+            # Save current user for AllergyCheck
+            save_current_user(user)
             return redirect(url_for('dashboard'))
         error = '<div class="alert error">Invalid credentials</div>'
 
@@ -510,6 +522,8 @@ def dashboard():
                 save_users(users)
                 session['user'] = users[i]
                 user = users[i]
+                # Update current user file for AllergyCheck
+                save_current_user(users[i])
                 
                 if sync_to_pi():
                     msg = '<div class="alert success">✅ Synced to Baymini</div>'

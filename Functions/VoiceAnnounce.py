@@ -30,6 +30,15 @@ class TextToSpeech:
                 print("✓ Using GLaDOS neural TTS engine")
                 return 'glados'
         
+        # Check for gTTS (Google TTS)
+        if self.engine == 'auto' or self.engine == 'gtts':
+            try:
+                from gtts import gTTS
+                print("✓ Using Google Text-to-Speech (gTTS)")
+                return 'gtts'
+            except ImportError:
+                pass
+        
         # Check for espeak
         try:
             result = subprocess.run(['which', 'espeak'], 
@@ -68,9 +77,18 @@ class TextToSpeech:
     def _check_glados(self):
         """Check if GLaDOS TTS API is available."""
         try:
+            print("🔍 Checking for GLaDOS server at", self.glados_api)
             response = requests.get(self.glados_api.replace('/synthesize', '/'), timeout=2)
+            print(f"   Response: {response.status_code}")
             return response.status_code == 200 or response.status_code == 404  # 404 is ok, means server is up
-        except:
+        except requests.exceptions.ConnectionError as e:
+            print(f"   ❌ GLaDOS server not running: Connection refused")
+            return False
+        except requests.exceptions.Timeout:
+            print(f"   ❌ GLaDOS server timeout")
+            return False
+        except Exception as e:
+            print(f"   ❌ GLaDOS check failed: {e}")
             return False
     
     def speak(self, text, rate=150, volume=100):
@@ -91,6 +109,8 @@ class TextToSpeech:
         try:
             if self.available_engine == 'glados':
                 self._speak_glados(text)
+            elif self.available_engine == 'gtts':
+                self._speak_gtts(text)
             elif self.available_engine == 'espeak':
                 self._speak_espeak(text, rate, volume)
             elif self.available_engine == 'festival':
@@ -133,6 +153,41 @@ class TextToSpeech:
                 self._speak_espeak(text, 150, 100)
             except:
                 print(f"TTS: {text}")
+    
+    def _speak_gtts(self, text):
+        """Speak using Google Text-to-Speech (gTTS) - natural voice, needs internet."""
+        try:
+            from gtts import gTTS
+            
+            # Generate audio
+            tts = gTTS(text=text, lang='en', slow=False)
+            
+            # Save to temp file
+            with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
+                audio_file = f.name
+            
+            tts.save(audio_file)
+            
+            # Play audio with mpg123 or ffplay
+            try:
+                subprocess.run(['mpg123', '-q', audio_file])
+            except FileNotFoundError:
+                # Try ffplay if mpg123 not available
+                try:
+                    subprocess.run(['ffplay', '-nodisp', '-autoexit', audio_file], 
+                                 stderr=subprocess.DEVNULL)
+                except FileNotFoundError:
+                    # Try aplay with conversion (requires ffmpeg)
+                    subprocess.run(['ffmpeg', '-i', audio_file, '-f', 'wav', '-', '|', 'aplay'], 
+                                 shell=True, stderr=subprocess.DEVNULL)
+            
+            # Clean up
+            os.unlink(audio_file)
+            
+        except Exception as e:
+            print(f"gTTS error: {e}")
+            # Fallback to espeak
+            self._speak_espeak(text, 175, 100)
     
     def _speak_espeak(self, text, rate=150, volume=100):
         """Speak using espeak with the warmest, friendliest voice possible."""
