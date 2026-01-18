@@ -1,0 +1,87 @@
+[
+    {
+        "name": "Test 1",
+        "email": "payton0620y@gmail.com",
+        "password": "iamtest1",
+        "allergies": [
+            "peanuts",
+            "fish"
+        ],
+        "conditions": [
+            "diabates"
+        ],
+        "medications": [
+            "something"
+        ]
+    },
+    {
+        "name": "w",
+        "email": "w@tmai.com",
+        "password": "w",
+        "allergies": [
+            "w"
+        ],
+        "conditions": [
+            "w"
+        ],
+        "medications": [
+            "w"
+        ]
+    },
+    {
+        "name": "tester",
+        "email": "tesr@gmail.com",
+        "password": "test",
+        "allergies": [
+            "wasdd"
+        ],
+        "conditions": [
+            "wasd"
+        ],
+        "medications": [
+            "wasd"
+        ]
+    },
+    {
+        "name": "wasd",
+        "email": "wasd@gmail.com",
+        "password": "wasd",
+        "allergies": [
+            "wasd"
+        ],
+        "conditions": [
+            "asd"
+        ],
+        "medications": [
+            "wasd"
+        ]
+    },
+    {
+        "name": "wasd",
+        "email": "wasdd@gamil.cim",
+        "password": "wasd",
+        "allergies": [
+            "wasd"
+        ],
+        "conditions": [
+            "wasd"
+        ],
+        "medications": [
+            "wasd"
+        ]
+    },
+    {
+        "name": "wasddd",
+        "email": "wasddd@gmail.com",
+        "password": "wasd",
+        "allergies": [
+            "wasd"
+        ],
+        "conditions": [
+            "wasd"
+        ],
+        "medications": [
+            "wasd"
+        ]
+    }
+]
